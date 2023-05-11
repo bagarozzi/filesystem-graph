@@ -6,14 +6,14 @@
 #include <math.h>
 #include <list>
 
-#define WINDOW_SIZE 900
+#define WINDOW_SIZE 1080
 
-#define MAX_CIRCLE_SIZE 100
-#define MIN_CIRCLE_SIZE 5
+#define MAX_CIRCLE_SIZE 500
+#define MIN_CIRCLE_SIZE 150
 
-#define SPREAD_MULT 10
-#define GRAVITY_CONST 1.5
-#define FORCE_CONST 250
+#define SPREAD_MULT 100
+#define GRAVITY_CONST 1.1
+#define FORCE_CONST 4000
 
 class Node {
     public:
@@ -79,7 +79,7 @@ unsigned long calculateFolderSizes(Node& current) {
     return current.size;
 }
 
-void calculateCircleSizes(Node& current, unsigned long maxSize, unsigned long minSize) {
+void calculateCircleSizes(Node& current, unsigned long& maxSize, unsigned long& minSize) {
     for (Node& node : current.children) {
         calculateCircleSizes(node, maxSize, minSize);
     }
@@ -89,6 +89,7 @@ void calculateCircleSizes(Node& current, unsigned long maxSize, unsigned long mi
 void drawNodes(Node& current, Vector2 parentPos, unsigned short depth) {
     current.pushed = false;
     DrawCircleV(current.pos, current.circleSize, WHITE);
+    DrawText(current.name.c_str(), current.pos.x, current.pos.y, 3 * current.circleSize, WHITE);
     if (depth != 0) {
         DrawLineV(current.pos, parentPos, { 255, 255, 255, 75 });
     }
@@ -191,6 +192,18 @@ int main(int argc, char *argv[]) {
         if (IsKeyDown(KEY_O)) {
             camera.zoom -= 0.001;
         }
+        if (IsKeyDown(KEY_UP)) {
+            camera.target.y -= 1 / camera.zoom * 3.0f;
+        }
+        if (IsKeyDown(KEY_DOWN)) {
+            camera.target.y += 1 / camera.zoom * 3.0f;
+        }
+        if (IsKeyDown(KEY_RIGHT)) {
+            camera.target.x += 1 / camera.zoom * 3.0f;
+        }
+        if (IsKeyDown(KEY_LEFT)) {
+            camera.target.x -= 1 / camera.zoom * 3.0f;
+        }
         applyForces(root, root);
         BeginDrawing();
         ClearBackground(BLACK);
@@ -200,6 +213,5 @@ int main(int argc, char *argv[]) {
         EndDrawing();
     }
     CloseWindow();
-    debugPrint(root, 0);
     return EXIT_SUCCESS;
 }
