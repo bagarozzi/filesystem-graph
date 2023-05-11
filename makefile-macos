@@ -1,0 +1,2 @@
+all: main.cpp
+	g++ main.cpp `pkg-config --libs --cflags raylib` -o graph -std=c++20 -Ofast -s -Wall-Wnomissing-braces -I include/ -lraylib -framework OpenGL
