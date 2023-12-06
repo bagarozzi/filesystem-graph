@@ -145,7 +145,7 @@ void debugPrint(Node& current, unsigned short depth) {
 
 int main(int argc, char *argv[]) {
     // Initial setup
-    srand(0);
+    srand(time(NULL));
     std::string pathMain = (std::string)getenv("HOME") + "/Documents/Progetti";
     if (argc > 1) {
         srand(strtol(argv[1], NULL, 10));
