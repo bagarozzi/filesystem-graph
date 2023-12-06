@@ -24,38 +24,38 @@ class Node {
         Vector2 force;
         std::list<Node> children;
     public:
-        Node(const unsigned long size, const std::string& name) :
+        Node(const unsigned long size, const std::string& name)
+            :
             size(size),
             name(name),
             circleSize(1.0f),
             pushed(false),
             pos(Vector2{
-                static_cast<float>(rand() % static_cast<int>((2 * spread_multiplier * window_size) - (spread_multiplier * window_size))),
-                static_cast<float>(rand() % static_cast<int>((2 * spread_multiplier * window_size) - (spread_multiplier * window_size)))
+                static_cast<float>(rand() % static_cast<int>((2.0f * spread_multiplier * window_size) - (spread_multiplier * window_size))),
+                static_cast<float>(rand() % static_cast<int>((2.0f * spread_multiplier * window_size) - (spread_multiplier * window_size)))
             }),
             force(Vector2{ 0.0f, 0.0f })
             {}
 
-        float mass() {
+        float mass() const {
             return (2.0f * PI * circleSize) / 1.5f;
         }
 
         void update() {
             const Vector2 vel = Vector2{force.x / this->mass(), force.y / this->mass()};
-            this->pos.x += vel.x;
-            this->pos.y += vel.y;
+            this->pos = Vector2{ this->pos.x + vel.x, this->pos.y + vel.y };
         }
 };
 
 void addNodes(Node& current, const std::string& path) {
     for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(path)) {
         if (is_directory(entry.path())) {
-            Node node(0, entry.path().filename());
+            const Node node(0, entry.path().filename());
             current.children.push_back(node);
             addNodes(current.children.back(), entry.path());
         } else {
             try {
-                Node node(entry.file_size(), entry.path().filename());
+                const Node node(entry.file_size(), entry.path().filename());
                 current.children.push_front(node);
             } catch (const std::filesystem::filesystem_error& e) {
                 std::cerr << e.what() << std::endl;
@@ -70,8 +70,7 @@ void getMaxSizes(Node& current, unsigned long& maxSize, unsigned long& minSize) 
     }
     if (current.size < minSize) {
         minSize = current.size;
-    }
-    if (current.size > maxSize) {
+    } else if (current.size > maxSize) {
         maxSize = current.size;
     }
 }
@@ -92,10 +91,10 @@ void calculateCircleSizes(Node& current, unsigned long& maxSize, unsigned long& 
 
 void drawNodes(Node& current, Vector2 parentPos, unsigned short depth) {
     current.pushed = false;
-    DrawCircleV(current.pos, current.circleSize, WHITE);
-    DrawText(current.name.c_str(), current.pos.x, current.pos.y, 3 * current.circleSize, WHITE);
+    DrawCircleV(current.pos, current.circleSize, Color{ 255, 255, 255, 255 });
+    DrawText(current.name.c_str(), current.pos.x, current.pos.y, 3 * current.circleSize, Color{ 255, 255, 255, 255 });
     if (depth != 0) {
-        DrawLineV(current.pos, parentPos, { 255, 255, 255, 75 });
+        DrawLineV(current.pos, parentPos, Color{ 255, 255, 255, 75 });
     }
     current.update();
     for (Node& node : current.children) {
@@ -105,17 +104,11 @@ void drawNodes(Node& current, Vector2 parentPos, unsigned short depth) {
 
 void repulseFromOthers(Node& main, Node& current) {
     if (!current.pushed) {
-        Vector2 dir;
-        dir.x = current.pos.x - main.pos.x;
-        dir.y = current.pos.y - main.pos.y;
-        float magSq = sqrt(dir.x * dir.x + dir.y * dir.y) * 2;
-        Vector2 force;
-        force.x = dir.x / magSq * force_multiplier;
-        force.y = dir.y / magSq * force_multiplier;
-        main.force.x += -force.x;
-        main.force.y += -force.y;
-        current.force.x += force.x;
-        current.force.y += force.y;
+        const Vector2 dir = Vector2{ current.pos.x - main.pos.x, current.pos.y - main.pos.y };
+        const float magSq = std::sqrt(dir.x * dir.x + dir.y * dir.y) * 2.0f;
+        const Vector2 force = Vector2 { dir.x / magSq * force_multiplier, dir.y / magSq * force_multiplier };
+        main.force = Vector2{ main.force.x - force.x, main.force.y - force.y };
+        current.force = Vector2{ current.force.x + force.x, current.force.y + force.y };
     }
     for (Node& node : current.children) {
         repulseFromOthers(main, node);
