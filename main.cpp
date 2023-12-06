@@ -3,44 +3,48 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <list>
 
-#define WINDOW_SIZE 1080
+constexpr int window_size = 1080;
+constexpr float max_node_size = 500.0f;
+constexpr float min_node_size = 150.0f;
 
-#define MAX_CIRCLE_SIZE 500
-#define MIN_CIRCLE_SIZE 150
-
-#define SPREAD_MULT 100
-#define GRAVITY_CONST 1.1
-#define FORCE_CONST 4000
+constexpr float spread_multiplier = 100.0f;
+constexpr float gravity_multiplier = 1.1f;
+constexpr float force_multiplier = 4000.0f;
 
 class Node {
     public:
-        Node(unsigned long size, const std::string& name) : size(size), name(name), circleSize(1), pushed(false) {
-            pos = { (float)(rand() % (2 * SPREAD_MULT * WINDOW_SIZE) - (SPREAD_MULT * WINDOW_SIZE)), (float)(rand() % (2 * SPREAD_MULT * WINDOW_SIZE) - (SPREAD_MULT * WINDOW_SIZE)) };
-            force = { 0, 0 };
-        }
+        unsigned long size;
+        const std::string name;
+        float circleSize;
+        bool pushed;
+        Vector2 pos;
+        Vector2 force;
+        std::list<Node> children;
+    public:
+        Node(const unsigned long size, const std::string& name) :
+            size(size),
+            name(name),
+            circleSize(1.0f),
+            pushed(false),
+            pos(Vector2{
+                static_cast<float>(rand() % static_cast<int>((2 * spread_multiplier * window_size) - (spread_multiplier * window_size))),
+                static_cast<float>(rand() % static_cast<int>((2 * spread_multiplier * window_size) - (spread_multiplier * window_size)))
+            }),
+            force(Vector2{ 0.0f, 0.0f })
+            {}
 
         float mass() {
-            return (2 * PI * circleSize) / 1.5;
+            return (2.0f * PI * circleSize) / 1.5f;
         }
 
         void update() {
-            Vector2 vel;
-            vel.x = force.x / mass();
-            vel.y = force.y / mass();
-            pos.x += vel.x;
-            pos.y += vel.y;
+            const Vector2 vel = Vector2{force.x / this->mass(), force.y / this->mass()};
+            this->pos.x += vel.x;
+            this->pos.y += vel.y;
         }
-    public:
-        unsigned long size;
-        const std::string name;
-        std::list<Node> children;
-        float circleSize;
-        Vector2 pos;
-        Vector2 force;
-        bool pushed;
 };
 
 void addNodes(Node& current, const std::string& path) {
@@ -83,7 +87,7 @@ void calculateCircleSizes(Node& current, unsigned long& maxSize, unsigned long& 
     for (Node& node : current.children) {
         calculateCircleSizes(node, maxSize, minSize);
     }
-    current.circleSize = ((float)current.size - (float)minSize) * ((float)MAX_CIRCLE_SIZE - (float)MIN_CIRCLE_SIZE) / ((float)maxSize - (float)minSize) + (float)(MIN_CIRCLE_SIZE);
+    current.circleSize = ((float)current.size - (float)minSize) * (max_node_size - min_node_size) / ((float)maxSize - (float)minSize) + min_node_size;
 }
 
 void drawNodes(Node& current, Vector2 parentPos, unsigned short depth) {
@@ -106,8 +110,8 @@ void repulseFromOthers(Node& main, Node& current) {
         dir.y = current.pos.y - main.pos.y;
         float magSq = sqrt(dir.x * dir.x + dir.y * dir.y) * 2;
         Vector2 force;
-        force.x = dir.x / magSq * FORCE_CONST;
-        force.y = dir.y / magSq * FORCE_CONST;
+        force.x = dir.x / magSq * force_multiplier;
+        force.y = dir.y / magSq * force_multiplier;
         main.force.x += -force.x;
         main.force.y += -force.y;
         current.force.x += force.x;
@@ -124,21 +128,17 @@ void applyForces(Node& current, Node& root) {
     }
     // Apply gravity force on node
     Vector2 gravity;
-    gravity.x = -current.pos.x * GRAVITY_CONST;
-    gravity.y = -current.pos.y * GRAVITY_CONST;
+    gravity.x = -current.pos.x * gravity_multiplier;
+    gravity.y = -current.pos.y * gravity_multiplier;
     current.force = gravity;
     // Repulse from every other node
     current.pushed = true;
     repulseFromOthers(current, root);
     // Attract from connected nodes
     for (Node& node : current.children) {
-        Vector2 dis;
-        dis.x = current.pos.x - node.pos.x;
-        dis.y = current.pos.y - node.pos.y;
-        current.force.x -= dis.x;
-        current.force.y -= dis.y;
-        node.force.x += dis.x;
-        node.force.y += dis.y;
+        const Vector2 dis = Vector2{ current.pos.x - node.pos.x, current.pos.y - node.pos.y };
+        current.force = Vector2{ current.force.x - dis.x, current.force.y - dis.y };
+        node.force = Vector2{ node.force.x + dis.x, node.force.y + dis.y };
     }
 }
 
@@ -178,19 +178,19 @@ int main(int argc, char *argv[]) {
     getMaxSizes(root, maxSize, minSize);
     calculateCircleSizes(root, maxSize, minSize);
     // Generating window and graph
-    InitWindow(WINDOW_SIZE, WINDOW_SIZE, "Graph View");
+    InitWindow(window_size, window_size, "Graph View");
     SetTargetFPS(60);
-    Camera2D camera = { 0 };
-    camera.target = (Vector2){ (float)-WINDOW_SIZE / 2, (float)-WINDOW_SIZE / 2 };
-    camera.offset = (Vector2){ (float)WINDOW_SIZE / 2, (float)WINDOW_SIZE / 2 };
+    Camera2D camera = { 0.0f };
+    camera.target = Vector2{ static_cast<float>(-window_size) / 2.0f, static_cast<float>(-window_size) / 2.0f };
+    camera.offset = Vector2{ static_cast<float>(window_size) / 2.0f, static_cast<float>(window_size) / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 0.1f;
     while (!WindowShouldClose()) {
         if (IsKeyDown(KEY_P)) {
-            camera.zoom += 0.001;
+            camera.zoom += 0.001f;
         }
         if (IsKeyDown(KEY_O)) {
-            camera.zoom -= 0.001;
+            camera.zoom -= 0.001f;
         }
         if (IsKeyDown(KEY_UP)) {
             camera.target.y -= 1 / camera.zoom * 3.0f;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
         BeginDrawing();
         ClearBackground(BLACK);
         BeginMode2D(camera);
-        drawNodes(root, root.pos, 0);
+        drawNodes(root, root.pos, 0.0f);
         EndMode2D();
         EndDrawing();
     }
