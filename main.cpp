@@ -121,10 +121,7 @@ void applyForces(Node& current, Node& root) {
         applyForces(node, root);
     }
     // Apply gravity force on node
-    Vector2 gravity;
-    gravity.x = -current.pos.x * gravity_multiplier;
-    gravity.y = -current.pos.y * gravity_multiplier;
-    current.force = gravity;
+    current.force = Vector2{ -current.pos.x * gravity_multiplier, -current.pos.y * gravity_multiplier };
     // Repulse from every other node
     current.pushed = true;
     repulseFromOthers(current, root);
