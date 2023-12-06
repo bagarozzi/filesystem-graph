@@ -70,7 +70,8 @@ void getMaxSizes(Node& current, unsigned long& maxSize, unsigned long& minSize) 
     }
     if (current.size < minSize) {
         minSize = current.size;
-    } else if (current.size > maxSize) {
+    }
+    if (current.size > maxSize) {
         maxSize = current.size;
     }
 }
