@@ -3,3 +3,9 @@ CLIBS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 all: main.cpp
 	g++ main.cpp -o graph ${CFLAGS} ${CLIBS}
+
+.PHONY:
+	clean
+
+clean:
+	rm graph
